@@ -18,38 +18,49 @@ public class UserService {
     @Autowired
     private UserDao userDao;
 
-    // schedule a job to add object in DB (every 5 sec)
-    @Scheduled(fixedRate = 5000)
-    public void addUserJob() {
-        //    make random string
-        String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final char CHAR = '-';
 
-        // create random string builder
+    private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    private static String addStripeToUsername(String str, char c, int pos) {
+
+        return str.substring(0, pos) + c + str.substring(pos);
+
+    }
+
+    private static String makeRandomUsername(String chars) {
+
+        String alphabet = chars;
+
         StringBuilder sb = new StringBuilder();
 
-        // create an object of Random class
         Random random = new Random();
 
-        // specify length of random string
         int length = 7;
 
-        for(int i = 0; i < length; i++) {
+        for (int i = 0; i < length; i++) {
 
-            // generate random index number
             int index = random.nextInt(alphabet.length());
 
-            // get character specified by index
-            // from the string
             char randomChar = alphabet.charAt(index);
 
-            // append the character to string builder
             sb.append(randomChar);
         }
 
         String randomString = sb.toString();
 
+        return randomString;
+
+    }
+
+    // schedule a job to add object in DB (every 5 sec)
+    @Scheduled(fixedRate = 5000)
+    public void addUserJob() {
+
+        String name = addStripeToUsername(makeRandomUsername(ALPHABET), CHAR, 3);
+
         UserModel userModel = new UserModel();
-        userModel.setUsername(randomString.toLowerCase()+ new Random().nextInt(231));
+        userModel.setUsername(name + new Random().nextInt(231));
 
         userDao.save(userModel);
 
@@ -65,6 +76,7 @@ public class UserService {
         log.info("Fetch service call in: {}", new Date().toString());
         log.info("No of record fetched: {}", userModels.size());
         log.info("Users: {}", userModels);
+
     }
 
 }
