@@ -1,81 +1,53 @@
 package irsan.project.jobschedulerexercice.service;
 
+import irsan.project.jobschedulerexercice.dao.JobTriggerDao;
 import irsan.project.jobschedulerexercice.dao.UserDao;
+import irsan.project.jobschedulerexercice.model.JobTriggerModel;
 import irsan.project.jobschedulerexercice.model.UserModel;
+import irsan.project.jobschedulerexercice.utils.Helpers;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class UserService {
 
-    @Autowired
-    private UserDao userDao;
+    private final UserDao userDao;
+    private final JobTriggerDao jobTriggerDao;
 
-    private static final char CHAR = '-';
-
-    private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-    private static String addStripeToUsername(String str, char c, int pos) {
-
-        return str.substring(0, pos) + c + str.substring(pos);
-
-    }
-
-    private static String makeRandomUsername(String chars) {
-
-        String alphabet = chars;
-
-        StringBuilder sb = new StringBuilder();
-
-        Random random = new Random();
-
-        int length = 7;
-
-        for (int i = 0; i < length; i++) {
-
-            int index = random.nextInt(alphabet.length());
-
-            char randomChar = alphabet.charAt(index);
-
-            sb.append(randomChar);
+    @Bean
+    public String cronExpression() {
+        log.info("Get cron expression from database");
+        Optional<JobTriggerModel> jobTriggerModel = jobTriggerDao.findByCodeJobTrigger("AA");
+        if (jobTriggerModel.isPresent()) {
+            JobTriggerModel jobTrigger = jobTriggerModel.get();
+            return jobTrigger.getCronExpression();
         }
-
-        String randomString = sb.toString();
-
-        return randomString;
-
+        return "0/30 * * * * *";
     }
 
-    // schedule a job to add object in DB (every 5 sec)
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(cron = "#{@cronExpression}", zone = "Asia/Jakarta")
     public void addUserJob() {
 
-        String name = addStripeToUsername(makeRandomUsername(ALPHABET), CHAR, 3);
-
-        UserModel userModel = new UserModel();
-        userModel.setUsername(name + new Random().nextInt(231));
-
-        userDao.save(userModel);
-
-        log.info("Add service call in: {}", new Date().toString());
-
-    }
-
-    @Scheduled(cron = "0/15 * * * * *")
-    public void fetchDbJob() {
-
-        List<UserModel> userModels = userDao.findAll();
-
-        log.info("Fetch service call in: {}", new Date().toString());
-        log.info("No of record fetched: {}", userModels.size());
-        log.info("Users: {}", userModels);
+        String name = Helpers.addStripeToUsername(Helpers.makeRandomUsername());
+        Optional<UserModel> userModel = userDao.findById(1L);
+        if (userModel.isPresent()) {
+            UserModel model = userModel.get();
+            model.setUsername(name + new Random().nextInt(231));
+            model.setInsertDatetime(Helpers.currentDate());
+            userDao.save(model);
+            log.info("Success update User");
+        } else {
+            log.info("User not present");
+        }
+        log.info("Add service call in: {}", Helpers.currentDate());
 
     }
 
