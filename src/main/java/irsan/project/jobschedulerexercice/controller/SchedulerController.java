@@ -1,4 +1,4 @@
-package irsan.project.jobschedulerexercice;
+package irsan.project.jobschedulerexercice.controller;
 
 import irsan.project.jobschedulerexercice.service.UserService;
 import lombok.RequiredArgsConstructor;
